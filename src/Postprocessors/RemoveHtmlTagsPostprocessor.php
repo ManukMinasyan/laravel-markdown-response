@@ -6,19 +6,12 @@ class RemoveHtmlTagsPostprocessor implements Postprocessor
 {
     public function __invoke(string $markdown): string
     {
-        $markdown = $this->unwrapAutolinks($markdown);
+        // Unwrap CommonMark autolinks before strip_tags() mistakes them for HTML.
+        $markdown = preg_replace([
+            '/<([a-z][a-z0-9+.-]{1,31}:[^\x00-\x20\x7f<>]*)>/i',
+            '/<([a-z0-9.!#$%&\'*+\/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*)>/i',
+        ], '$1', $markdown) ?? $markdown;
 
         return strip_tags($markdown);
-    }
-
-    /**
-     * The league driver renders mailto links and self-referencing urls as
-     * markdown autolinks ("<user@example.com>", "<https://example.com>").
-     * strip_tags() would treat those as html tags and delete them, so we
-     * unwrap them to bare text first.
-     */
-    protected function unwrapAutolinks(string $markdown): string
-    {
-        return preg_replace('/<((?:[^\s<>@]+@|https?:\/\/)[^\s<>]+)>/', '$1', $markdown) ?? $markdown;
     }
 }
